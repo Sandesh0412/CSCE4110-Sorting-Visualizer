@@ -190,3 +190,82 @@ Custom runner in `tests/test_sorting.cpp` (assertions stay active in Release —
 - Quicksort sorted / reversed / duplicate inputs at n = 64, 128, 256
 
 **Verified on this branch:** Debug, Release, and ASan+UBSan builds each reported `Passed: 186  Failed: 0` via `ctest` / `sorting_tests` (g++ 13.3, CMake 3.28.3).
+
+
+
+
+
+
+
+
+
+## Sorting Visualizer
+
+The project includes an SFML-based sorting visualizer that demonstrates how Bubble Sort, Merge Sort, and Quick Sort work. The visualizer displays sorting operations through animated bars and allows users to control the animation.
+
+### Requirements
+
+Before running the visualizer, make sure you have:
+
+- C++17-compatible compiler (MinGW-w64 recommended for Windows)
+- CMake (3.16 or newer)
+- Git
+- Internet connection for the initial SFML download
+
+SFML is downloaded automatically through CMake, so a separate SFML installation is not required.
+
+### Building and Running the Visualizer
+
+Open a terminal in the project's root directory.
+
+**1. Configure the project:**
+
+```powershell
+cmake -S . -B build-visualizer -G "MinGW Makefiles" -DBUILD_VISUALIZER=ON
+```
+
+**2. Build the visualizer:**
+
+```powershell
+cmake --build build-visualizer --target sorting_visualizer -j 4
+```
+
+**3. Run the visualizer:**
+
+```powershell
+.\build-visualizer\sorting_visualizer.exe
+```
+
+Run the executable from the project's root directory so any relative asset paths work correctly.
+
+### Keyboard Controls
+
+| Key | Action |
+|---|---|
+| 1 | Select Bubble Sort |
+| 2 | Select Merge Sort |
+| 3 | Select Quick Sort |
+| Space | Start / Pause animation |
+| R | Reset animation |
+| Up Arrow | Increase animation speed |
+| Down Arrow | Decrease animation speed |
+
+### How It Works
+
+The visualizer uses the sorting engine's event system to animate sorting operations. Each bar represents a number in the array, with taller bars representing larger values.
+
+- Blue bars represent array elements.
+- Yellow bars highlight elements involved in the current sorting operation.
+- The sorting algorithms generate events for comparisons, swaps, and writes.
+- The visualizer processes these events to display the sorting process step by step.
+
+### Project Structure
+
+```text
+visualizer/
+├── main.cpp          # Starts the application
+├── Visualizer.cpp    # Handles animation, rendering, and controls
+└── Visualizer.hpp    # Declares the Visualizer class
+```
+
+The visualizer is an optional CMake target and does not need to be built when running the sorting engine or its tests.
