@@ -23,3 +23,32 @@ add_test(NAME sorting_tests COMMAND sorting_tests)
 
 add_executable(sorting_demo demo/main.cpp)
 target_link_libraries(sorting_demo PRIVATE sorting_engine)
+
+# Benjamin's SFML Sorting Visualizer
+option(BUILD_VISUALIZER "Build the SFML sorting visualizer" OFF)
+
+if(BUILD_VISUALIZER)
+    include(FetchContent)
+
+    FetchContent_Declare(
+        SFML
+        GIT_REPOSITORY https://github.com/SFML/SFML.git
+        GIT_TAG 3.0.2
+        GIT_SHALLOW TRUE
+    )
+
+    set(SFML_BUILD_AUDIO OFF CACHE BOOL "" FORCE)
+    set(SFML_BUILD_NETWORK OFF CACHE BOOL "" FORCE)
+
+    FetchContent_MakeAvailable(SFML)
+
+    add_executable(sorting_visualizer
+      visualizer/main.cpp
+      visualizer/Visualizer.cpp
+    )
+
+    target_link_libraries(sorting_visualizer PRIVATE
+        sorting_engine
+        SFML::Graphics
+    )
+endif()
