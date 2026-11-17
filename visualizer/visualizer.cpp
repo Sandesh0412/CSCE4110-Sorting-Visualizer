@@ -16,6 +16,11 @@ Visualizer::Visualizer()
 {
     window.setFramerateLimit(60);
 
+    if (!font.openFromFile("assets/fonts/Inter-Regular.ttf"))
+    {
+        throw std::runtime_error("Failed to load font");
+    }
+
     selectAlgorithm(selectedAlgorithm);
 }
 
@@ -230,5 +235,48 @@ void Visualizer::render()
         window.draw(bar);
     }
 
+    renderHeader();
+    
     window.display();
+}
+
+void Visualizer::renderHeader()
+{
+    std::string algorithmName;
+
+    switch (selectedAlgorithm)
+    {
+        case sorting::Algorithm::Bubble:
+            algorithmName = "BUBBLE SORT";
+            break;
+
+        case sorting::Algorithm::Merge:
+            algorithmName = "MERGE SORT";
+            break;
+
+        case sorting::Algorithm::Quick:
+            algorithmName = "QUICK SORT";
+            break;
+    }
+
+    std::string status;
+
+    if (eventIndex >= events.size())
+        status = "COMPLETE";
+    else if (playing)
+        status = "SORTING";
+    else if (eventIndex == 0)
+        status = "READY";
+    else
+        status = "PAUSED";
+
+    sf::Text title(font, algorithmName, 24);
+    title.setFillColor(sf::Color(235, 235, 240));
+    title.setPosition({40.f, 25.f});
+    window.draw(title);
+
+    sf::Text statusText(font, status, 14);
+    statusText.setFillColor(sf::Color(150, 155, 170));
+    statusText.setPosition({40.f, 65.f});
+    window.draw(statusText);
 }
