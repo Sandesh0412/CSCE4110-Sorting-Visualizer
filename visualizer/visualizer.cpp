@@ -1,7 +1,12 @@
 
-#include "Visualizer.hpp"
+#include "visualizer.hpp"
 
 #include <algorithm>
+#include <array>
+#include <chrono>
+#include <filesystem>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -9,12 +14,14 @@
 Visualizer::Visualizer()
 
     : window(
-        sf::VideoMode({1000, 700}),
+        sf::VideoMode({1000, 820}),
         "Sorting Algorithm Visualizer"
       ),
       values(original)
 {
     window.setFramerateLimit(60);
+    window.setKeyRepeatEnabled(false);
+    loadFont();
 
     selectAlgorithm(selectedAlgorithm);
 }
@@ -25,8 +32,11 @@ void Visualizer::run()
     while (window.isOpen())
     {
         handleEvents();
-        update();
-        render();
+        if (window.isOpen())
+        {
+            update();
+            render();
+        }
     }
 }
 
@@ -45,6 +55,11 @@ void Visualizer::handleEvents()
         {
             if (key->code == sf::Keyboard::Key::Space)
             {
+                // Space also replays a completed animation from its start.
+                if (isComplete())
+                {
+                    reset();
+                }
                 playing = !playing;
                 animationClock.restart();
             }
@@ -124,11 +139,41 @@ void Visualizer::selectAlgorithm(sorting::Algorithm algorithm)
         events.push_back(event);
     };
 
-    stats = sorting::sort(
+    // Generate playback events separately. Never include their collection or
+    // the intentional animation delay in the displayed sorting time.
+    const auto playbackStats = sorting::sort(
         selectedAlgorithm,
         sortedCopy,
         &sink
     );
+
+    // Warm up the selected algorithm before taking measurements.
+    auto warmup = original;
+    sorting::sort(selectedAlgorithm, warmup, nullptr);
+
+    // A 20-value input is very short. Report a median of repeated runs rather
+    // than one noisy sample. Copying and correctness checks are outside timing.
+    std::array<double, benchmarkTrials> durations{};
+    for (auto& duration : durations)
+    {
+        auto benchmarkData = original;
+        const auto start = std::chrono::steady_clock::now();
+        const auto measuredStats = sorting::sort(
+            selectedAlgorithm, benchmarkData, nullptr);
+        const auto stop = std::chrono::steady_clock::now();
+        duration = std::chrono::duration<double, std::milli>(stop - start).count();
+
+        if (benchmarkData != sortedCopy ||
+            measuredStats.comparisons != playbackStats.comparisons ||
+            measuredStats.swaps != playbackStats.swaps ||
+            measuredStats.writes != playbackStats.writes)
+        {
+            throw std::runtime_error("Benchmark and playback results differ");
+        }
+        stats = measuredStats; // Counts for ONE sort, not the sum of 31 runs.
+    }
+    std::sort(durations.begin(), durations.end());
+    sortingTimeMs = durations[benchmarkTrials / 2];
 }
 
 
@@ -192,8 +237,8 @@ void Visualizer::render()
     window.clear(sf::Color(25, 25, 35));
 
     const float windowWidth = 1000.f;
-    const float bottom = 650.f;
-    const float maxBarHeight = 500.f;
+    const float bottom = 510.f;
+    const float maxBarHeight = 390.f;
     const float spacing = 4.f;
 
     const int maxValue = *std::max_element(
@@ -230,5 +275,118 @@ void Visualizer::render()
         window.draw(bar);
     }
 
+    renderHeader();
+    renderPerformance();
+    renderControls();
     window.display();
+}
+
+
+
+bool Visualizer::isComplete() const
+{
+    return !events.empty() && eventIndex >= events.size();
+}
+
+void Visualizer::loadFont()
+{
+    // Supports launching from the repository root, build-ui, or a child folder.
+    auto directory = std::filesystem::current_path();
+    for (int depth = 0; depth < 6; ++depth)
+    {
+        const auto candidate = directory / "assets" / "fonts" / "Inter-Regular.ttf";
+        if (std::filesystem::exists(candidate) && font.openFromFile(candidate))
+        {
+            return;
+        }
+        const auto parent = directory.parent_path();
+        if (parent == directory)
+        {
+            break;
+        }
+        directory = parent;
+    }
+    throw std::runtime_error(
+        "Cannot load assets/fonts/Inter-Regular.ttf. Run from the repository root.");
+}
+
+void Visualizer::drawText(const std::string& text, float x, float y,
+                          unsigned int size, sf::Color color)
+{
+    sf::Text label(font, text, size);
+    label.setPosition({x, y});
+    label.setFillColor(color);
+    window.draw(label);
+}
+
+void Visualizer::renderHeader()
+{
+    const sf::Color ink(235, 239, 250);
+    const sf::Color muted(165, 176, 199);
+    drawText("Sorting Algorithm Visualizer", 24.f, 18.f, 27, ink);
+    drawText("Same starting array for all three algorithms", 24.f, 57.f, 16, muted);
+
+    std::string status = "Ready - press Space";
+    if (isComplete())
+        status = "Complete - Space to replay";
+    else if (playing)
+        status = "Playing";
+    else if (eventIndex > 0)
+        status = "Paused";
+
+    drawText(status, 650.f, 25.f, 18, sf::Color(255, 200, 60));
+    drawText("Playback delay: " + std::to_string(eventDelay.asMilliseconds()) + " ms",
+             650.f, 57.f, 16, muted);
+}
+
+void Visualizer::renderPerformance()
+{
+    sf::RectangleShape panel({952.f, 166.f});
+    panel.setPosition({24.f, 540.f});
+    panel.setFillColor(sf::Color(35, 41, 57));
+    window.draw(panel);
+
+    const sf::Color ink(235, 239, 250);
+    const sf::Color muted(165, 176, 199);
+    std::string name;
+    switch (selectedAlgorithm)
+    {
+        case sorting::Algorithm::Bubble: name = "Bubble Sort"; break;
+        case sorting::Algorithm::Merge: name = "Merge Sort"; break;
+        case sorting::Algorithm::Quick: name = "Quick Sort"; break;
+    }
+    drawText("Algorithm: " + name, 44.f, 553.f, 22, ink);
+    drawText("Array size: " + std::to_string(original.size()), 660.f, 553.f, 22, ink);
+
+    if (isComplete())
+    {
+        std::ostringstream time;
+        time << std::fixed << std::setprecision(6) << sortingTimeMs;
+        drawText("Sorting time: " + time.str() + " ms", 44.f, 591.f, 23,
+                 sf::Color(97, 218, 172));
+        drawText("Comparisons: " + std::to_string(stats.comparisons), 44.f, 630.f, 20, ink);
+        drawText("Swaps: " + std::to_string(stats.swaps), 385.f, 630.f, 20, ink);
+        drawText("Writes: " + std::to_string(stats.writes), 660.f, 630.f, 20, ink);
+    }
+    else
+    {
+        drawText("Sorting time: --   (shown when playback completes)",
+                 44.f, 591.f, 21, muted);
+        drawText("Comparisons: --", 44.f, 630.f, 20, muted);
+        drawText("Swaps: --", 385.f, 630.f, 20, muted);
+        drawText("Writes: --", 660.f, 630.f, 20, muted);
+    }
+    drawText("31-run median | Events disabled | Excludes animation | Counts per sort",
+             44.f, 673.f, 14, muted);
+}
+
+void Visualizer::renderControls()
+{
+    const sf::Color ink(235, 239, 250);
+    const sf::Color muted(165, 176, 199);
+    drawText("KEYBOARD CONTROLS", 24.f, 723.f, 15, sf::Color(255, 200, 60));
+    drawText("Space = Play / Pause     R = Reset     Up = Faster     Down = Slower",
+             24.f, 749.f, 18, ink);
+    drawText("1 = Bubble Sort     2 = Merge Sort     3 = Quick Sort",
+             24.f, 779.f, 17, muted);
 }
