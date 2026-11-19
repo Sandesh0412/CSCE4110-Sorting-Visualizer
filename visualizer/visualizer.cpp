@@ -30,7 +30,6 @@ void Visualizer::run()
     while (window.isOpen())
     {
         handleEvents();
-
         if (window.isOpen())
         {
             update();
@@ -58,7 +57,6 @@ void Visualizer::handleEvents()
                 {
                     reset();
                 }
-
                 playing = !playing;
                 animationClock.restart();
             }
