@@ -3,9 +3,9 @@
 #include <SFML/Graphics.hpp>
 #include "sorting/SortingEngine.hpp"
 
-#include <vector>
 #include <cstddef>
 #include <string>
+#include <vector>
 
 class Visualizer
 {
@@ -14,12 +14,19 @@ public:
     void run();
 
 private:
+    enum class InputMode {
+        Normal,
+        EnterArray,
+        EnterRandomSize
+    };
+
     void handleEvents();
     void update();
     void render();
     void renderHeader();
     void renderPerformance();
     void renderControls();
+    void renderInputOverlay();
 
     void drawText(
         const std::string& text,
@@ -33,18 +40,25 @@ private:
     bool isComplete() const;
     void reset();
     void selectAlgorithm(sorting::Algorithm algorithm);
+    void preparePlayback();
+    void applyEvent(const sorting::SortEvent& current);
+    void stepOnce();
+
+    void generateRandomArray(std::size_t size);
+    void applyUserArray(const std::string& text);
+    void beginEnterArray();
+    void beginEnterRandomSize();
+    void commitTextInput();
+    void cancelTextInput();
+    void handleTextEntered(char32_t unicode);
+
+    static std::vector<int> defaultArray();
 
     sf::Font font;
     sf::RenderWindow window;
     sf::Clock animationClock;
 
-    const std::vector<int> original = {
-        45, 12, 78, 34, 90,
-        23, 67, 15, 56, 82,
-        38, 71, 29, 95, 43,
-        61, 18, 84, 52, 36
-    };
-
+    std::vector<int> original;
     std::vector<int> values;
     std::vector<sorting::SortEvent> events;
 
@@ -52,6 +66,9 @@ private:
 
     double sortingTimeMs = 0.0;
     static constexpr int benchmarkTrials = 31;
+    static constexpr std::size_t kMinRandomSize = 5;
+    static constexpr std::size_t kMaxRandomSize = 80;
+    static constexpr std::size_t kDefaultRandomSize = 20;
 
     sorting::Algorithm selectedAlgorithm =
         sorting::Algorithm::Bubble;
@@ -63,5 +80,8 @@ private:
 
     int highlightedA = -1;
     int highlightedB = -1;
-};
 
+    InputMode inputMode = InputMode::Normal;
+    std::string inputBuffer;
+    std::string statusMessage;
+};

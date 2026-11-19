@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520">
+<rect width="100%" height="100%" fill="#fafafa"/>
+<text x="450.0" y="28" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="18" fill="#222">Median sort time vs size (random)</text>
+<line x1="72" y1="48" x2="72" y2="456" stroke="#333"/>
+<line x1="72" y1="456" x2="876" y2="456" stroke="#333"/>
+<text x="450.0" y="502" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="13" fill="#444">n</text>
+<text x="18" y="260.0" text-anchor="middle" transform="rotate(-90 18 260.0)" font-family="Helvetica,Arial,sans-serif" font-size="13" fill="#444">time (ms)</text>
+<line x1="67" y1="456.0" x2="72" y2="456.0" stroke="#333"/>
+<text x="62" y="460.0" text-anchor="end" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#555">0</text>
+<line x1="72" y1="456.0" x2="876" y2="456.0" stroke="#ddd" stroke-dasharray="3,3"/>
+<line x1="67" y1="354.0" x2="72" y2="354.0" stroke="#333"/>
+<text x="62" y="358.0" text-anchor="end" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#555">2.04</text>
+<line x1="72" y1="354.0" x2="876" y2="354.0" stroke="#ddd" stroke-dasharray="3,3"/>
+<line x1="67" y1="252.0" x2="72" y2="252.0" stroke="#333"/>
+<text x="62" y="256.0" text-anchor="end" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#555">4.08</text>
+<line x1="72" y1="252.0" x2="876" y2="252.0" stroke="#ddd" stroke-dasharray="3,3"/>
+<line x1="67" y1="150.0" x2="72" y2="150.0" stroke="#333"/>
+<text x="62" y="154.0" text-anchor="end" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#555">6.11</text>
+<line x1="72" y1="150.0" x2="876" y2="150.0" stroke="#ddd" stroke-dasharray="3,3"/>
+<line x1="67" y1="48.0" x2="72" y2="48.0" stroke="#333"/>
+<text x="62" y="52.0" text-anchor="end" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#555">8.15</text>
+<line x1="72" y1="48.0" x2="876" y2="48.0" stroke="#ddd" stroke-dasharray="3,3"/>
+<line x1="72.0" y1="456" x2="72.0" y2="461" stroke="#333"/>
+<text x="72.0" y="478" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#555">64</text>
+<line x1="125.6" y1="456" x2="125.6" y2="461" stroke="#333"/>
+<text x="125.6" y="478" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#555">128</text>
+<line x1="232.8" y1="456" x2="232.8" y2="461" stroke="#333"/>
+<text x="232.8" y="478" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#555">256</text>
+<line x1="447.2" y1="456" x2="447.2" y2="461" stroke="#333"/>
+<text x="447.2" y="478" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#555">512</text>
+<line x1="876.0" y1="456" x2="876.0" y2="461" stroke="#333"/>
+<text x="876.0" y="478" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#555">1024</text>
+<path d="M 72.0,454.7 L 125.6,450.9 L 232.8,430.7 L 447.2,367.1 L 876.0,85.1" fill="none" stroke="#e45756" stroke-width="2.5"/>
+<circle cx="72.0" cy="454.7" r="3.5" fill="#e45756"/>
+<circle cx="125.6" cy="450.9" r="3.5" fill="#e45756"/>
+<circle cx="232.8" cy="430.7" r="3.5" fill="#e45756"/>
+<circle cx="447.2" cy="367.1" r="3.5" fill="#e45756"/>
+<circle cx="876.0" cy="85.1" r="3.5" fill="#e45756"/>
+<rect x="80" y="53" width="14" height="14" fill="#e45756"/>
+<text x="100" y="64" font-family="Helvetica,Arial,sans-serif" font-size="13" fill="#222">Bubble</text>
+<path d="M 72.0,455.6 L 125.6,454.9 L 232.8,453.5 L 447.2,449.7 L 876.0,440.8" fill="none" stroke="#4c78a8" stroke-width="2.5"/>
+<circle cx="72.0" cy="455.6" r="3.5" fill="#4c78a8"/>
+<circle cx="125.6" cy="454.9" r="3.5" fill="#4c78a8"/>
+<circle cx="232.8" cy="453.5" r="3.5" fill="#4c78a8"/>
+<circle cx="447.2" cy="449.7" r="3.5" fill="#4c78a8"/>
+<circle cx="876.0" cy="440.8" r="3.5" fill="#4c78a8"/>
+<rect x="190" y="53" width="14" height="14" fill="#4c78a8"/>
+<text x="210" y="64" font-family="Helvetica,Arial,sans-serif" font-size="13" fill="#222">Merge</text>
+<path d="M 72.0,455.8 L 125.6,455.4 L 232.8,454.5 L 447.2,452.6 L 876.0,447.5" fill="none" stroke="#54a24b" stroke-width="2.5"/>
+<circle cx="72.0" cy="455.8" r="3.5" fill="#54a24b"/>
+<circle cx="125.6" cy="455.4" r="3.5" fill="#54a24b"/>
+<circle cx="232.8" cy="454.5" r="3.5" fill="#54a24b"/>
+<circle cx="447.2" cy="452.6" r="3.5" fill="#54a24b"/>
+<circle cx="876.0" cy="447.5" r="3.5" fill="#54a24b"/>
+<rect x="300" y="53" width="14" height="14" fill="#54a24b"/>
+<text x="320" y="64" font-family="Helvetica,Arial,sans-serif" font-size="13" fill="#222">Quick</text>
+</svg>
