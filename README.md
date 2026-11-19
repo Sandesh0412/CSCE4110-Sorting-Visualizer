@@ -1,26 +1,28 @@
-# CSCE4110 Sorting Visualizer — Sorting Engine
+# CSCE 4110 Sorting Visualizer
 
-C++17 sorting-engine library for the team Sorting Algorithm Visualizer & Benchmark project.
+C++17 sorting-engine library, SFML visualizer, and standalone benchmark suite for the team Sorting Algorithm Visualizer & Benchmark project.
 
-**Current status (Sandesh / `sandeshpariyar`):** the sorting algorithms, operation events, and per-run counters are implemented and tested. SFML visualization, playback controls, benchmark graphs, PDF report, and video are **not** in this branch — those belong to teammates.
+| Person | Focus | Status |
+|--------|--------|--------|
+| **Pariyar Sandesh** | Sorting algorithms & engine logic | Implemented |
+| **Benjamin** | SFML visualizer consuming events | Implemented under `visualizer/` |
+| **Fidel** | Benchmark timing / graphs | Implemented under `benchmark/`, `scripts/`, `results/` |
 
-| Person | Focus | Status here |
-|--------|--------|-------------|
-| **Pariyar Sandesh** | Sorting algorithms & engine logic | Implemented in this branch |
-| **Benjamin** | SFML visualizer consuming events | Integration pending |
-| **Fidel** | Benchmark UI / timing | Integration pending |
-
-This library has **no SFML dependency**.
+PDF report, presentation, and demo video are separate deliverables (not covered here).
 
 ## Prerequisites
 
-- C++17 compiler (verified with **g++ 13.3**)
+- **C++17** compiler (verified with **g++ 13.3**)
 - **CMake ≥ 3.16**
-- On this environment the default `c++` may be clang without a usable `-lstdc++`; prefer `CXX=g++`
+- Prefer `CXX=g++` if the default `c++` is clang without a usable `-lstdc++`
+- **Visualizer only:** Git + network (CMake FetchContent downloads SFML 3.0.2); Linux also needs X11/OpenGL build deps such as `libxrandr-dev`, `libxcursor-dev`, `libxi-dev`, `libudev-dev`, `libfreetype-dev`, `libgl1-mesa-dev`
+- **Graphs:** Python 3 (stdlib only) to regenerate SVG charts from CSV
 
-## Build and test (verified)
+The sorting engine and benchmark have **no SFML dependency**.
 
-Out-of-tree builds only:
+## Build and test (engine)
+
+Out-of-tree builds:
 
 ```bash
 # Debug
@@ -34,6 +36,8 @@ cmake --build build-release
 ctest --test-dir build-release --output-on-failure
 ```
 
+Targets always built: `sorting_engine` (static lib), `sorting_tests`, `sorting_demo`, and (by default) `sorting_benchmark`.
+
 Optional sanitizers (when the toolchain supports them):
 
 ```bash
@@ -43,8 +47,6 @@ CXX=g++ cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug \
 cmake --build build-asan
 ctest --test-dir build-asan --output-on-failure
 ```
-
-Targets: `sorting_engine` (static lib), `sorting_tests`, `sorting_demo`.
 
 ## Directory layout
 
@@ -62,9 +64,20 @@ Targets: `sorting_engine` (static lib), `sorting_tests`, `sorting_demo`.
 │   ├── MergeSort.cpp
 │   ├── QuickSort.cpp
 │   ├── SortingEngine.cpp
-│   └── detail.hpp          # internal helpers (not public API)
+│   └── detail.hpp
 ├── tests/test_sorting.cpp
-└── demo/main.cpp           # tiny CLI: sort a sample and print stats
+├── demo/main.cpp
+├── visualizer/
+│   ├── main.cpp
+│   ├── visualizer.cpp
+│   └── visualizer.hpp
+├── benchmark/
+│   ├── main.cpp
+│   ├── benchmark.cpp
+│   └── benchmark.hpp
+├── scripts/plot_benchmark.py
+├── results/                 # sample CSV + SVG charts
+└── assets/fonts/Inter-Regular.ttf
 ```
 
 ## Minimal API example
@@ -77,13 +90,12 @@ int main() {
   std::vector<int> data{5, 1, 4, 2, 3};
 
   sorting::EventSink sink = [](const sorting::SortEvent& e) {
-    // Benjamin: drive highlights / bar swaps from e
+    // drive highlights / bar swaps from e
   };
 
   sorting::SortStats stats =
       sorting::sort(sorting::Algorithm::Merge, data, &sink);
 
-  // Fidel: pass nullptr (or omit) to skip events; stats still fill in
   auto timed = sorting::sort(sorting::Algorithm::Quick, data, nullptr);
   (void)stats;
   (void)timed;
@@ -96,25 +108,23 @@ int main() {
 |-----------|----------|---------|-------|---------|
 | **Bubble** | Adjacent compare/swap; **early-exit** after a swap-free pass | O(n²) | O(n²) | Yes |
 | **Merge** | Recursive split + merge into a temp buffer, then copy back | O(n log n) | O(n log n) | Yes |
-| **Quick** | **Last-element pivot**, **Lomuto** partition; recurse smaller side / iterate larger (stack-safe; pivot strategy unchanged) | O(n log n) | **O(n²)** on sorted / reverse / many equal keys with this pivot | No |
+| **Quick** | **Last-element pivot**, **Lomuto** partition; recurse smaller side / iterate larger | O(n log n) | **O(n²)** on sorted / reverse / many equal keys with this pivot | No |
 
 Empty and single-element inputs are no-ops with all counters zero.
 
-**Quicksort limitation:** last-element pivot remains intentionally fixed for the assignment. Sorted, reversed, and duplicate-heavy inputs are quadratic in comparisons/swaps. Prefer Merge (or a different pivot policy later) for large adversarial inputs in benchmarks.
+**Quicksort limitation:** last-element pivot remains intentionally fixed for the assignment. Sorted, reversed, and duplicate-heavy inputs are quadratic in comparisons/swaps.
 
 ## Counters (`SortStats`)
-
-Returned by every `sort()` call. Always start at **zero for that run** (no carry-over).
 
 | Field | Counts |
 |-------|--------|
 | `comparisons` | Each value comparison performed by the algorithm |
-| `swaps` | Each actual exchange of two **distinct** primary indices (`i != j`). Self-swaps are skipped and **not** counted |
+| `swaps` | Each exchange of two **distinct** primary indices (`i != j`) |
 | `writes` | Each assignment into the Merge temp buffer **or** back into the primary array. Bubble/Quick do not use writes |
 
-Disabling the event sink does **not** change counter values or sort results. Instrumentation (incrementing counters, optional callbacks) still costs CPU — Fidel should treat engine timings as instrumented unless measuring a stripped build.
+Disabling the event sink does **not** change counter values or sort results.
 
-## Event contract (Benjamin)
+## Event contract
 
 ```cpp
 enum class EventType { Compare, Swap, Write, Partition };
@@ -130,142 +140,105 @@ constexpr int kWritePrimary = 0;
 constexpr int kWriteTemp = 1;
 ```
 
-| Type | Meaning | `i` | `j` | `value` | Mutates primary? |
-|------|---------|-----|-----|---------|------------------|
-| `Compare` | Compare primary[i] vs primary[j] | index | index | unused | No |
-| `Swap` | Swap primary[i] and primary[j] | index | index | unused | **Yes** (mutated **before** callback) |
-| `Write` | Assign `value` | index | `kWritePrimary` or `kWriteTemp` | written value | Only if `j == kWritePrimary` (mutated before callback) |
-| `Partition` range | Quicksort subarray | lo | hi | unused | No |
-| `Partition` pivot | Quicksort pivot highlight | pivot | pivot (`i == j`) | pivot value | No |
-
-### Merge Sort specifics
-
-- Comparisons during merge use **primary-array indices**; values still live in `data` until copy-back.
-- Filling the temp buffer emits `Write` with `j == kWriteTemp` (does not change primary).
-- Copy-back emits `Write` with `j == kWritePrimary`.
+| Type | Meaning | `i` | `j` | Mutates primary? |
+|------|---------|-----|-----|------------------|
+| `Compare` | Compare primary[i] vs primary[j] | index | index | No |
+| `Swap` | Swap primary[i] and primary[j] | index | index | **Yes** (before callback) |
+| `Write` | Assign `value` | index | `kWritePrimary` or `kWriteTemp` | Only if `j == kWritePrimary` |
+| `Partition` | Quicksort range or pivot highlight | lo/pivot | hi/pivot | No |
 
 ### Replay guidance
 
-From the initial array, apply only:
+From the initial array, apply only every `Swap` and every `Write` with `j == kWritePrimary`. Ignore `Compare`, `Partition`, and temp writes.
 
-1. every `Swap`, and
-2. every `Write` with `j == kWritePrimary`
+## Sorting Visualizer (SFML)
 
-Ignore `Compare`, `Partition`, and temp `Write`s for reconstructing the primary array. After the run, the replayed array must match the engine result (covered by tests).
+Optional CMake target (`BUILD_VISUALIZER`, default **OFF**). SFML 3.0.2 is fetched automatically.
 
-### Sink rules
+### Build and run
 
-- Type: `std::function<void(const SortEvent&)>`; pass `EventSink*` or `nullptr`.
-- No sink ⇒ no event storage inside the engine.
-- Sink must outlive the `sort()` call.
-- If the sink throws, `sort` aborts; `data` may be partially sorted.
+```bash
+# Linux / macOS (needs X11/OpenGL -dev packages on Linux)
+CXX=g++ cmake -S . -B build-visualizer -DBUILD_VISUALIZER=ON
+cmake --build build-visualizer --target sorting_visualizer
+./build-visualizer/sorting_visualizer
 
-## Teammate integration notes
+# Windows (MinGW example)
+cmake -S . -B build-visualizer -G "MinGW Makefiles" -DBUILD_VISUALIZER=ON
+cmake --build build-visualizer --target sorting_visualizer -j 4
+.\build-visualizer\sorting_visualizer.exe
+```
 
-**Benjamin:** link `sorting_engine`, call `sort` with a sink, map `Compare`/`Swap`/`Write`/`Partition` to SFML highlights. Prefer primary mutations for bar updates; temp writes can drive a secondary buffer visualization if desired.
+Run from the repository root so `assets/fonts/Inter-Regular.ttf` resolves.
 
-**Fidel:** call `sort(algo, data, nullptr)` for counters without event overhead. Still expect instrumentation cost from counter updates. Do not assume wall-clock times equal an uninstrumented textbook implementation.
+### Keyboard controls
+
+| Key | Action |
+|---|---|
+| 1 / 2 / 3 | Bubble / Merge / Quick |
+| Space | Play / Pause (replays when complete) |
+| N or Right Arrow | **Single-step** one event |
+| R | Reset animation |
+| Up / Down | Faster / slower playback |
+| G | Generate a **random** array (prompts for size 5–80) |
+| I | Enter a **custom integer array** (spaces or commas) |
+| Enter / Esc | Confirm / cancel text input |
+
+On-screen stats (comparisons, swaps, writes, 31-run median time) appear when playback completes.
+
+## Standalone benchmark
+
+No SFML. Built by default (`BUILD_BENCHMARK=ON`).
+
+Measures **median wall-clock time** (events disabled) plus `comparisons` / `swaps` / `writes` across:
+
+- **Sizes:** 64, 128, 256, 512, 1024 (or `--quick`: 64, 128, 256)
+- **Arrangements:** random, sorted, reverse, nearly_sorted, duplicates
+- **Algorithms:** Bubble, Merge, Quick
+
+```bash
+CXX=g++ cmake -S . -B build-debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-debug --target sorting_benchmark
+
+# Full suite → CSV
+./build-debug/sorting_benchmark --out results/benchmark.csv --seed 4110 --trials 5
+
+# Fast smoke
+./build-debug/sorting_benchmark --quick --out /tmp/bench-quick.csv
+```
+
+### Regenerating graphs
+
+Sample CSV and SVG charts are committed under `results/`. Regenerate with:
+
+```bash
+python3 scripts/plot_benchmark.py results/benchmark.csv --outdir results
+```
+
+Produces:
+
+- `results/time_by_size_random.svg`
+- `results/comparisons_by_size_random.svg`
+- `results/time_by_arrangement_n1024.svg` (largest `n` in the CSV)
+
+Open the SVGs in any browser or image viewer.
+
+## Tests covered
+
+Custom runner in `tests/test_sorting.cpp` (assertions stay active in Release):
+
+- Empty, single, two-element; duplicates / all-equal; sorted and reverse-sorted
+- Negatives, `INT_MIN` / `INT_MAX`; reproducible random vs `std::sort`
+- Every algorithm with and without a sink; counter independence
+- Exact counters on small hand-checked examples; event validity; mutation replay
+- Quicksort adversarial sizes at n = 64, 128, 256
+
+**Verified:** Debug build `Passed: 186  Failed: 0` via `ctest` / `sorting_tests`.
 
 ## Known limitations
 
 - Quicksort last-element pivot ⇒ quadratic worst case (documented above).
 - Engine sorts `std::vector<int>` only.
-- No SFML, UI, charts, PDF, or video in this contribution.
 - Algorithms never call `std::sort` (tests use it only as an oracle).
-
-## Tests actually covered
-
-Custom runner in `tests/test_sorting.cpp` (assertions stay active in Release — no reliance on `assert`):
-
-- Empty, single, two-element
-- Duplicates / all-equal
-- Sorted and reverse-sorted
-- Negatives, `INT_MIN` / `INT_MAX`
-- Reproducible random sizes vs `std::sort`
-- Every algorithm with and without a sink (same result + counters)
-- Counter independence across runs
-- Exact counters on small hand-checked Bubble/Merge/Quick examples
-- Event index/value validity
-- Mutation-event replay equals engine output
-- Quicksort sorted / reversed / duplicate inputs at n = 64, 128, 256
-
-**Verified on this branch:** Debug, Release, and ASan+UBSan builds each reported `Passed: 186  Failed: 0` via `ctest` / `sorting_tests` (g++ 13.3, CMake 3.28.3).
-
-
-
-
-
-
-
-
-
-## Sorting Visualizer
-
-The project includes an SFML-based sorting visualizer that demonstrates how Bubble Sort, Merge Sort, and Quick Sort work. The visualizer displays sorting operations through animated bars and allows users to control the animation.
-
-### Requirements
-
-Before running the visualizer, make sure you have:
-
-- C++17-compatible compiler (MinGW-w64 recommended for Windows)
-- CMake (3.16 or newer)
-- Git
-- Internet connection for the initial SFML download
-
-SFML is downloaded automatically through CMake, so a separate SFML installation is not required.
-
-### Building and Running the Visualizer
-
-Open a terminal in the project's root directory.
-
-**1. Configure the project:**
-
-```powershell
-cmake -S . -B build-visualizer -G "MinGW Makefiles" -DBUILD_VISUALIZER=ON
-```
-
-**2. Build the visualizer:**
-
-```powershell
-cmake --build build-visualizer --target sorting_visualizer -j 4
-```
-
-**3. Run the visualizer:**
-
-```powershell
-.\build-visualizer\sorting_visualizer.exe
-```
-
-Run the executable from the project's root directory so any relative asset paths work correctly.
-
-### Keyboard Controls
-
-| Key | Action |
-|---|---|
-| 1 | Select Bubble Sort |
-| 2 | Select Merge Sort |
-| 3 | Select Quick Sort |
-| Space | Start / Pause animation |
-| R | Reset animation |
-| Up Arrow | Increase animation speed |
-| Down Arrow | Decrease animation speed |
-
-### How It Works
-
-The visualizer uses the sorting engine's event system to animate sorting operations. Each bar represents a number in the array, with taller bars representing larger values.
-
-- Blue bars represent array elements.
-- Yellow bars highlight elements involved in the current sorting operation.
-- The sorting algorithms generate events for comparisons, swaps, and writes.
-- The visualizer processes these events to display the sorting process step by step.
-
-### Project Structure
-
-```text
-visualizer/
-├── main.cpp          # Starts the application
-├── Visualizer.cpp    # Handles animation, rendering, and controls
-└── Visualizer.hpp    # Declares the Visualizer class
-```
-
-The visualizer is an optional CMake target and does not need to be built when running the sorting engine or its tests.
+- Visualizer timing panel is a small in-UI median; prefer `sorting_benchmark` for published graphs.
+- SFML visualizer needs a graphical display (and the Linux X11/OpenGL packages listed above).

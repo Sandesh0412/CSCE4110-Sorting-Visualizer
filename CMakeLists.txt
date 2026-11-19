@@ -24,7 +24,7 @@ add_test(NAME sorting_tests COMMAND sorting_tests)
 add_executable(sorting_demo demo/main.cpp)
 target_link_libraries(sorting_demo PRIVATE sorting_engine)
 
-# Benjamin's SFML Sorting Visualizer
+# SFML Sorting Visualizer (optional)
 option(BUILD_VISUALIZER "Build the SFML sorting visualizer" OFF)
 
 if(BUILD_VISUALIZER)
@@ -44,11 +44,29 @@ if(BUILD_VISUALIZER)
 
     add_executable(sorting_visualizer
       visualizer/main.cpp
-      visualizer/Visualizer.cpp
+      visualizer/visualizer.cpp
+    )
+
+    target_include_directories(sorting_visualizer PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/visualizer
     )
 
     target_link_libraries(sorting_visualizer PRIVATE
         sorting_engine
         SFML::Graphics
     )
+endif()
+
+# Standalone benchmark CLI (no SFML)
+option(BUILD_BENCHMARK "Build the sorting benchmark CLI" ON)
+
+if(BUILD_BENCHMARK)
+    add_executable(sorting_benchmark
+      benchmark/main.cpp
+      benchmark/benchmark.cpp
+    )
+    target_include_directories(sorting_benchmark PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/benchmark
+    )
+    target_link_libraries(sorting_benchmark PRIVATE sorting_engine)
 endif()
